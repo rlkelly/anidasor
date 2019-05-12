@@ -8,3 +8,11 @@ An app architecture was built using Liquidity, a Tezos language with oCaml like 
 The main contract is Anidasor, which contains factories for creating WorkerContracts, FundingRequests, Farms and Purchasers.  By creating contracts through the Anidasor contract, it allows all contracts to be owned by it, and creates constraints on updates in other contracts.
 
 The contracts have contstraints on who can call and update based on the scenario.  For example, only a farm can change it's worker contract's workers, but the funds can only be unlocked daily to pay workers.  If the lender does not want to participate in the contract any more, they are released the remaining funds they are owed from the worker contract.
+
+
+
+
+DEPLOYMENT
+==========
+
+this would be deployed as a single contract, because the Anidasor contract is a factory that is used to build all other contracts.  When a contract is created through the Anidasor contract, the owner of the contract is dually Anidasor and the creator.  So there are functions that can only be called by the Farm that created the contract, and their are functions that can only be called by the Anidasor contract.

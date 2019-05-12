@@ -43,6 +43,14 @@ contract Farm = {
     }
   };
 
+  let%entry withdraw_funds = ((receiver: hash_key), storage) => {
+      // allows the owner to withdraw all funds in contract
+      check_sender(storage.owner, "only app can change app address");
+      Account.transfer(hash_key, Current.balance());
+      ((), storage);
+  };
+
+
   let%entry update_app_address = ((new_app: address), storage) => {
       check_sender(storage.app_address, "only app can change app address");
       let storage = storage.app_address = new_app;

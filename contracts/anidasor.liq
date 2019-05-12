@@ -27,7 +27,7 @@ let%entry change_app_contract = (new_app: address, farm_address: address) => {
     ~amount=0tz,
     ~entry=update_app_address,
     ~parameter=new_app);
-}
+};
 
 let%entry create_farm = ((
       farm_name: string,

@@ -76,10 +76,10 @@ contract FundingRequest = {
       ~parameter=(Current.sender(), payback_amount, payback_percentage, c_addr));
 
     ([c_op, op1, op2], storage);
-  }
+  };
 
   let%entry change_description = ((change: string), storage) => {
       let storage = storage.description = change;
       ([], storage);
-  }
+  };
 };

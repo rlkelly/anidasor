@@ -1,24 +1,23 @@
 type funding_request = {
-  owner: address
+  farm: address
   amount_requested: tez,
+  payback_amount: tez,
   description: string,
-  number_of_workers: nat,
+  payback_percentage: nat,
 };
 
 contract FundingRequest = {
   type storage = funding_request
-  let%init storage = (owner: address, amount: tez, description: string, number_of_workers: nat) => {
-    if (amount < 0) {
-      Current.failwith("invalid")
-    };
-    if (number_of_workers < 0) {
+  let%init storage = (farm: address, amount_requested: tez, payback_percentage: tez, description: string, payback_ratio: nat) => {
+    if ((payback_ratio < 0) or (amount < 0)) {
       Current.failwith("invalid")
     };
     {
-      owner,
+      farm,
       amount_requested,
+      payback_amount,
       description,
-      number_of_workers,
+      payback_percentage,
     }
   };
 
@@ -48,7 +47,7 @@ contract FundingRequest = {
         ~spendable,
         ~delegatable=false,
         ~amount,
-        ~storage={farm: Current.sender(), employee, daily_wage, last_payday: Current.time()},
+        ~storage={farm, employee, daily_wage, last_payday: Current.time(), lendor: Current.sender(), original_loan: amount_requested, payback_amount},
         (contract WorkerContract),
       );
 
@@ -67,8 +66,14 @@ contract FundingRequest = {
     let op = Contract.call(
       ~dest=t,
       ~amount=0tz,
-      ~entry=add_funding_request,
-      ~parameter=c_addr);
+      ~entry=add_worker_contract,
+      ~parameter=(c_addr, storage.payback_percentage));
+
+    let op = Contract.call(
+      ~dest=t,
+      ~amount=0tz,
+      ~entry=add_debt,
+      ~parameter=(Current.sender(), payback_amount, payback_percentage, c_addr));
 
     ([c_op, op], storage);
   }

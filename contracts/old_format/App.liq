@@ -14,7 +14,7 @@ type farm = {
 }
 
 type cafe = {
-  (*owner: address;*)
+  // owner: address;
   balance: tez;
   location: string;
   name: string;

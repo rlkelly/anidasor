@@ -1,3 +1,6 @@
+// this is a factory for creating funding requests,
+// farms, and worker contracts
+
 type storage = {
   owner_key: key,
   owner: address,
@@ -17,16 +20,9 @@ let%entry create_farm = ((
     ),
     storage) => {
 
-  switch(Map.find(farm_name, storage.farms)) {
-      | None => ()
-      | Some(_) => {
-        Current.failwith("farm already exists")
-      }
-  };
-
   let manager = Crypto.hash_key(storage.owner_key);
   let delegate = Some(manager);
-  let spendable = false;
+  let spendable = true;
   let amount = Current.amount();
 
   let (c_op, c_addr) =
@@ -34,17 +30,17 @@ let%entry create_farm = ((
       ~manager,
       ~delegate,
       ~spendable,
-      ~delegatable=false,
+      ~delegatable=true,
       ~amount,
       ~storage={owner: Current.source(), amount: 0, unit_of_measurement: "lbs", location: farm_location, description: farm_description, cost: 0tz},
       (contract Farm),
     );
 
-  let storage = storage.farms = Map.add(farm_name, c_addr, storage.farms);
+  let storage = storage.farms = Set.add(c_addr, storage.farms);
   ([c_op], storage);
 };
 
-let%entry create_funding_contract = ((
+let%entry create_funding_request = ((
       // make list of valid farms
       amount_requested: tez,
       description: string,
@@ -59,7 +55,7 @@ let%entry create_funding_contract = ((
 
   let manager = Crypto.hash_key(storage.owner_key);
   let delegate = Some(manager);
-  let spendable = false;
+  let spendable = true;
   let amount = Current.amount();
 
   let (c_op, c_addr) =
@@ -67,7 +63,7 @@ let%entry create_funding_contract = ((
       ~manager,
       ~delegate,
       ~spendable,
-      ~delegatable=false,
+      ~delegatable=true,
       ~amount,
       ~storage={farm: Current.sender(), amount_requested: amount_requested, description: description, number_of_workers: number_of_workers},
       (contract FundingRequest),
@@ -81,7 +77,7 @@ let%entry create_funding_contract = ((
   let op = Contract.call(
     ~dest=t,
     ~amount=0tz,
-    ~entry=add_worker_contract,
+    ~entry=add_funding_request,
     ~parameter=c_addr);
 
   ([c_op, op], storage);

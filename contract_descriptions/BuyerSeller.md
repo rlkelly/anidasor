@@ -11,4 +11,4 @@ storage: [
 ]
 
 BuyOffer()
-CreateSellOffer(amount, )
+CreateSellOffer(amount)

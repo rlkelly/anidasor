@@ -3,7 +3,7 @@
 This mean "Hope is Here" in a local dialect of ghana, Twi.
 
 
-This is an app to create a supply chain for coffee purchasing.
+This is an app to create a supply chain for coffee purchasing, and for lendors to lend money to pay workers.  They will only be able to use these funds to pay workers, will receive a percent of all purchases from the coffee farm automatically, and can cancel their contract if they lose confidence in the farm they are supporting.
 
 An app architecture was built using Liquidity, a Tezos language with oCaml like syntax that compiles to Michelson (the Tezos VM).
 

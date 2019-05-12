@@ -25,7 +25,7 @@ let%entry create_farm = ((
   let spendable = true;
   let amount = Current.amount();
 
-  let (c_op, c_addr) =
+  let (create_farm_op, create_farm_addr) =
     Contract.create(
       ~manager,
       ~delegate,
@@ -36,8 +36,35 @@ let%entry create_farm = ((
       (contract Farm),
     );
 
-  let storage = storage.farms = Set.add(c_addr, storage.farms);
-  ([c_op], storage);
+  let storage = storage.farms = Set.add(create_farm_addr, storage.farms);
+  ([create_farm_op], storage);
+};
+
+let%entry create_purchaser = ((
+      owner: address,
+      owner_key: key_hash,
+      location: string, description: string
+    ),
+    storage) => {
+
+  let manager = Crypto.hash_key(storage.owner_key);
+  let delegate = Some(manager);
+  let spendable = true;
+  let amount = Current.amount();
+
+  let (create_farm_op, create_farm_addr) =
+    Contract.create(
+      ~manager,
+      ~delegate,
+      ~spendable,
+      ~delegatable=true,
+      ~amount,
+      ~storage={owner: Current.source(), owner_key: key_hash, app_address: Contract.at(Current.self()), location, description},
+      (contract Farm),
+    );
+
+  let storage = storage.farms = Set.add(create_farm_addr, storage.farms);
+  ([create_farm_op], storage);
 };
 
 let%entry create_funding_request = ((
@@ -58,7 +85,7 @@ let%entry create_funding_request = ((
   let spendable = true;
   let amount = Current.amount();
 
-  let (c_op, c_addr) =
+  let (create_funding_op, create_funding_addr) =
     Contract.create(
       ~manager,
       ~delegate,
@@ -78,7 +105,7 @@ let%entry create_funding_request = ((
     ~dest=t,
     ~amount=0tz,
     ~entry=add_funding_request,
-    ~parameter=c_addr);
+    ~parameter=create_funding_addr);
 
-  ([c_op, op], storage);
+  ([create_funding_op, op], storage);
 };

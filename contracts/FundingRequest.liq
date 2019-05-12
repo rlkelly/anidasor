@@ -63,19 +63,19 @@ contract FundingRequest = {
       | None => Current.failwith()
       | Some(inst) => inst
     };
-    let op = Contract.call(
+    let op1 = Contract.call(
       ~dest=t,
       ~amount=0tz,
       ~entry=add_worker_contract,
       ~parameter=(c_addr, storage.payback_percentage));
 
-    let op = Contract.call(
+    let op2 = Contract.call(
       ~dest=t,
       ~amount=0tz,
       ~entry=add_debt,
       ~parameter=(Current.sender(), payback_amount, payback_percentage, c_addr));
 
-    ([c_op, op], storage);
+    ([c_op, op1, op2], storage);
   }
 
   let%entry change_description = ((change: string), storage) => {

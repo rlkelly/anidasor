@@ -42,7 +42,7 @@ contract Farm = {
         Current.failwith("invalid")
       };
       ([], storage);
-  }
+  };
 
   let%entry change_storage_unit = ((change: string), storage) => {
       let storage = storage.unit_of_measurement = change;
@@ -52,12 +52,12 @@ contract Farm = {
   let%entry change_location = ((change: string), storage) => {
       let storage = storage.location = change;
       ([], storage);
-  }
+  };
 
   let%entry change_description = ((change: string), storage) => {
       let storage = storage.description = change;
       ([], storage);
-  }
+  };
 
   let%entry create_funding_request = ((amount_requested: tez, description: string, number_of_workers: nat), storage) => {
     // maybe the fundingfactory could be separate
@@ -72,7 +72,7 @@ contract Farm = {
       ~entry=create_funding_request,
       ~parameter=(amount_requested, description, number_of_workers));
     ([op], storage);
-  }
+  };
 
   let%entry add_funding_request = ((funding_contract: address), storage) => {
       if (Current.sender() != app_address) {
@@ -80,7 +80,7 @@ contract Farm = {
       };
       let storage = storage.funding_requests = Set.add(funding_contract, storage.funding_requests);
       ([], storage);
-  }
+  };
 
   let%entry add_worker_contract = ((worker_contract: address, percentage: nat), storage) => {
       if ((storage.total_percentage + percentage) > 35) {
@@ -94,7 +94,7 @@ contract Farm = {
       let storage = storage.worker_contracts = Set.add(worker_contract, storage.worker_contracts);
       storage.total_percentages = storage.total_percentage + percentage;
       ([], storage);
-  }
+  };
 
   let%entry delete_debt = ((address: address), storage) => {
     // a contract can be deleted by itself
@@ -107,13 +107,13 @@ contract Farm = {
     };
     let storage = storage.debts = Map.remove(address, storage.debts);
     ([], storage);
-  }
+  };
 
   let%entry add_debt = ((address: address, balance: tez, payment_percentage: nat, funding_contract: address), storage) => {
     let new_debt = {balance, payment_percentage, funding_contract};
     let storage = storage.debts = Map.add(address, new_debt, storage.debts);
     ([], storage);
-  }
+  };
 
   let%entry remove_empty_debtor = (address, storage) => {
     let payment_percent = switch(Map.find(address, storage.debts)) {
@@ -129,7 +129,7 @@ contract Farm = {
     storage.total_percentage = storage.total_percentage - payment_percent;
     let storage = storage.debts = Map.remove(address, storage.debts);
     ([], storage);
-  }
+  };
 
   let%entry purchase = (amount_to_purchase, storage) => {
     if (amount_to_purchase > storage.amount) {
@@ -140,6 +140,7 @@ contract Farm = {
       Current.failwith("Insufficient funds");
     };
 
+    // pay lender and update worker contract to reflect how much has been paid back
     storage.supply = storage.amount - amount_to_purchase;
     let ops = Map.map((receiver, t) => {
       let amount_to_send =
@@ -150,7 +151,11 @@ contract Farm = {
       if (amount_to_send > t.balance) {
         amount_to_send = t.balance;
       };
-      let op = Contract.call(receiver, amount_to_send, ());
+      let op = Contract.call(
+        ~dest=t.funding_contract,
+        ~amount=amount_to_send,
+        ~entry=pay_lender,
+        ~parameter=unit);
     }, storage.debt);
 
     let debts = Map.map((receiver, t) => {
@@ -162,19 +167,16 @@ contract Farm = {
       t.balance = t.balance - amount_to_send;
     });
 
-    // update worker contract to reflect how much has been paid back
-    let funding_ops = Map.map((receiver, t) => {
-      let amount_to_send =
-        switch ((Current.amount() * 100) / t.payment_percentage) {
-        | Some(a, _) => a
-        | None => failwith("division by 0 impossible")
-      };
-      Contract.call(
-        ~dest=t.funding_contract,
-        ~amount=0tz,
-        ~entry=increase_earnings,
-        ~parameter=amount_to_send);
-    });
+    let t: option(Purchaser.instance) = Contract.at(Current.sender());
+    let t = switch(t) {
+      | None => Current.failwith()
+      | Some(inst) => inst
+    };
+    let op1 = Contract.call(
+      ~dest=t,
+      ~amount=0tz,
+      ~entry=receive_offer,
+      ~parameter=(amount_to_purchase, storage.unit_of_measurement));
 
     let storage = storage.debts = debts;
     (ops, storage);

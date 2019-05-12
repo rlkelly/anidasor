@@ -17,4 +17,4 @@ The contracts have contstraints on who can call and update based on the scenario
 DEPLOYMENT
 ==========
 
-this would be deployed as a single contract, because the Anidasor contract is a factory that is used to build all other contracts.  When a contract is created through the Anidasor contract, the owner of the contract is dually Anidasor and the creator.  So there are functions that can only be called by the Farm that created the contract, and their are functions that can only be called by the Anidasor contract.
+This would be deployed as a single contract, because the Anidasor contract is a factory that is used to build all other contracts.  When a contract is created through the Anidasor contract, the owner of the contract is dually Anidasor and the creator.  So there are functions that can only be called by the Farm that created the contract, and their are functions that can only be called by the Anidasor contract.

@@ -1,4 +1,6 @@
 // how much for a list of coffees purchased
+// This contract can support a buyer, seller or a cafe that can list coffees by the price per cup.
+
 type offers = {
    price: tez,
    coffees: list(nat),

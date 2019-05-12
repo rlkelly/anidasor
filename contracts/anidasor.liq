@@ -1,5 +1,5 @@
-// this is a factory for creating funding requests,
-// farms, and worker contracts
+// this is a factory for creating contracts
+// it ensures that all contracts are owned by this top level contract
 
 type storage = {
   owner_key: key,
@@ -12,6 +12,22 @@ let%init storage = (owner_key: key) => {
   owner: Current.sender(),
   farms: Map,
 };
+
+let%entry change_app_contract = (new_app: address, farm_address: address) => {
+  if (Current.sender() != owner) {
+    Current.failwith("only owner can update farms");
+  };
+  let t: option(Farm.instance) = Contract.at(farm_address);
+  let t = switch(t) {
+    | None => Current.failwith()
+    | Some(inst) => inst
+  };
+  let op = Contract.call(
+    ~dest=t,
+    ~amount=0tz,
+    ~entry=update_app_address,
+    ~parameter=new_app);
+}
 
 let%entry create_farm = ((
       farm_name: string,
@@ -96,7 +112,7 @@ let%entry create_funding_request = ((
       (contract FundingRequest),
     );
 
-  let t: option(Farm.instance) = Contract.at(owner);
+  let t: option(Farm.instance) = Contract.at(Current.sender());
   let t = switch(t) {
     | None => Current.failwith()
     | Some(inst) => inst

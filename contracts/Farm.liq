@@ -18,6 +18,13 @@ type farm_storage = {
   total_percentages: nat,
 };
 
+[@inline]
+let check_sender = (req: address, error_string: string) => {
+  if (Current.sender() != req) {
+    Current.failwith(string);
+  };
+};
+
 contract Farm = {
   type storage = farm_storage
   let%init storage = (owner: address, app_address: address, amount: int, unit_of_measurement: string, location: string, description: string, cost: tez) => {
@@ -36,7 +43,14 @@ contract Farm = {
     }
   };
 
+  let%entry update_app_address = ((new_app: address), storage) => {
+      check_sender(storage.app_address, "only app can change app address");
+      let storage = storage.app_address = new_app;
+      ((), storage);
+  };
+
   let%entry change_storage_amount = ((change: int), storage) => {
+      check_sender(storage.owner, "only owner can modify");
       let storage = storage.amount = storage.amount + change;
       if (storage.amount < 0) {
         Current.failwith("invalid")
@@ -45,21 +59,26 @@ contract Farm = {
   };
 
   let%entry change_storage_unit = ((change: string), storage) => {
+      check_sender(storage.owner, "only owner can modify");
       let storage = storage.unit_of_measurement = change;
       ([], storage);
   }
 
   let%entry change_location = ((change: string), storage) => {
+      check_sender(storage.owner, "only owner can modify");
       let storage = storage.location = change;
       ([], storage);
   };
 
   let%entry change_description = ((change: string), storage) => {
+      check_sender(storage.owner, "only owner can modify");
       let storage = storage.description = change;
       ([], storage);
   };
 
   let%entry create_funding_request = ((amount_requested: tez, description: string, number_of_workers: nat), storage) => {
+    check_sender(storage.owner, "only owner can modify");
+
     // maybe the fundingfactory could be separate
     let t: option(App.instance) = Contract.at(storage.app_address);
     let t = switch(t) {
@@ -75,41 +94,42 @@ contract Farm = {
   };
 
   let%entry add_funding_request = ((funding_contract: address), storage) => {
-      if (Current.sender() != app_address) {
-        Current.failwith("only the app can make funding requests");
-      };
+      check_sender(storage.app_address, "only app can modify");
       let storage = storage.funding_requests = Set.add(funding_contract, storage.funding_requests);
       ([], storage);
   };
 
   let%entry add_worker_contract = ((worker_contract: address, percentage: nat), storage) => {
-      if ((storage.total_percentage + percentage) > 35) {
-        Current.failwith("can not give more than 35% of earnings");
-      };
       switch(Map.get(Current.sender(), storage.funding_requests)) {
         | None => Current.failwith("only existing funding requests can add worker contracts")
         | Some(_) => ()
       };
 
+      if ((storage.total_percentage + percentage) > 35) {
+        Current.failwith("can not give more than 35% of earnings");
+      };
       let storage = storage.worker_contracts = Set.add(worker_contract, storage.worker_contracts);
       storage.total_percentages = storage.total_percentage + percentage;
       ([], storage);
   };
 
   let%entry delete_debt = ((address: address), storage) => {
-    // a contract can be deleted by itself
-    if (Current.sender() != address) {
-      Current.failwith("Only contract can erase self");
-    };
-    let debt = switch(Map.find(address, storage.debts)) {
-      | None => 0
-      | Some(x) => x.payment_percentage
-    };
-    let storage = storage.debts = Map.remove(address, storage.debts);
-    ([], storage);
+      // a contract can only be deleted by itself
+      check_sender(address, "Only contract can erase self");
+      let debt = switch(Map.find(address, storage.debts)) {
+        | None => 0
+        | Some(x) => x.payment_percentage
+      };
+      let storage = storage.debts = Map.remove(address, storage.debts);
+      ([], storage);
   };
 
   let%entry add_debt = ((address: address, balance: tez, payment_percentage: nat, funding_contract: address), storage) => {
+    // debt can only be added by funding contracts
+    switch(Map.get(Current.sender(), storage.funding_requests)) {
+        | None => Current.failwith("Only a funding request can add debt")
+        | Some(_) => ()
+    };
     let new_debt = {balance, payment_percentage, funding_contract};
     let storage = storage.debts = Map.add(address, new_debt, storage.debts);
     ([], storage);

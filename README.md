@@ -1,4 +1,6 @@
-# anidasor
+# anidasor aba
+
+This mean "Hope is Here" in a local dialect of ghana, Twi.
 
 
 This is an app to create a supply chain for coffee purchasing.

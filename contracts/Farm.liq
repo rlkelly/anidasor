@@ -21,7 +21,7 @@ type farm_storage = {
 [@inline]
 let check_sender = (req: address, error_string: string) => {
   if (Current.sender() != req) {
-    Current.failwith(string);
+    Current.failwith(error_string);
   };
 };
 
@@ -176,8 +176,10 @@ contract Farm = {
         | Some(a, _) => a
         | None => failwith("division by 0 impossible")
       };
-      if (amount_to_send > t.balance) {
-        amount_to_send = t.balance;
+      let amount_to_send = if (amount_to_send > t.balance) {
+        t.balance;
+      } else {
+        amount_to_send;
       };
       let op = Contract.call(
         ~dest=t.funding_contract,
